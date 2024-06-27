@@ -1,4 +1,4 @@
-package com.example.loginscreen;
+package com.example.signotext;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -12,29 +12,11 @@ import com.example.signotext.R;
 
 public class Inicio extends AppCompatActivity {
 
-    EditText username;
-    EditText password;
-    Button loginButton;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_inicio);
 
-        username = findViewById(R.id.username);
-        password = findViewById(R.id.password);
-        loginButton = findViewById(R.id.loginButton);
 
-        loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (username.getText().toString().equals("user") && password.getText().toString().equals("1234")) {
-                    Toast.makeText(com.example.loginscreen.Inicio.this, "Login Successful!", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(com.example.loginscreen.Inicio.this, "Login Failed!", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
     }
 }

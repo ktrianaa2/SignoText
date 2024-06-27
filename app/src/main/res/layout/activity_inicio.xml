@@ -4,9 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/indexback1"
+    android:background="@drawable/indexback2"
     tools:context=".Inicio">
 
+    <!-- Título SignoText -->
     <TextView
         android:id="@+id/textTitulo"
         android:layout_width="wrap_content"
@@ -20,33 +21,33 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Título Traducciones -->
     <TextView
         android:id="@+id/txtTraducciones"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_marginTop="50dp"
+        android:layout_marginTop="66dp"
         android:text="Traducciones"
         android:textColor="#333333"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="@+id/textTitulo"
-        app:layout_constraintStart_toStartOf="@+id/textTitulo"
-        app:layout_constraintTop_toBottomOf="@+id/textTitulo" />
+        app:layout_constraintEnd_toEndOf="@id/textTitulo"
+        app:layout_constraintStart_toStartOf="@id/textTitulo"
+        app:layout_constraintTop_toBottomOf="@id/textTitulo" />
 
-
+    <!-- Card Seña a Texto -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardTraducirSeniaTexto"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="16dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
         app:cardUseCompatPadding="true"
-        app:layout_constraintEnd_toStartOf="@+id/cardTextoSenia"
+        app:layout_constraintEnd_toStartOf="@id/cardTextoSenia"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtTraducciones">
+        app:layout_constraintTop_toBottomOf="@id/txtTraducciones">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -73,13 +74,13 @@
         android:id="@+id/cardTextoSenia"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="16dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
         app:cardUseCompatPadding="true"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/cardTraducirSeniaTexto"
-        app:layout_constraintTop_toBottomOf="@+id/txtTraducciones">
+        app:layout_constraintStart_toEndOf="@id/cardTraducirSeniaTexto"
+        app:layout_constraintTop_toBottomOf="@id/txtTraducciones">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -102,31 +103,33 @@
 
     </androidx.cardview.widget.CardView>
 
+
     <TextView
         android:id="@+id/txtConversaciones"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:text="Conversaciones"
         android:textColor="#333333"
         android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cardTextoSenia" />
+        app:layout_constraintTop_toBottomOf="@id/cardTextoSenia" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/cardIniciarConversacion"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
         app:cardUseCompatPadding="true"
-        app:layout_constraintEnd_toStartOf="@+id/cardConversacionesGuardadas"
+        app:layout_constraintEnd_toStartOf="@id/cardConversacionesGuardadas"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtConversaciones">
+        app:layout_constraintTop_toBottomOf="@id/txtConversaciones">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -149,16 +152,18 @@
 
     </androidx.cardview.widget.CardView>
 
+    <!-- Card Conversaciones Guardadas -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardConversacionesGuardadas"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
         app:cardUseCompatPadding="true"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/cardIniciarConversacion"
-        app:layout_constraintTop_toBottomOf="@+id/txtConversaciones">
+        app:layout_constraintStart_toEndOf="@id/cardIniciarConversacion"
+        app:layout_constraintTop_toBottomOf="@id/txtConversaciones">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -181,5 +186,9 @@
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>
+
+
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -66,6 +66,8 @@ public class SeniaATexto extends AppCompatActivity {
     private Runnable detectionRunnable;
     private StringBuilder currentText = new StringBuilder();
     private long lastDetectionTime = 0;
+    private StringBuilder translatedText = new StringBuilder(); // Texto traducido estático
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -246,13 +248,15 @@ public class SeniaATexto extends AppCompatActivity {
                 if (!predictedLabel.equals(lastDetectedLetter)) {
                     appendLetter(predictedLabel);
                     lastDetectedLetter = predictedLabel;
+
+                    // Llama a finalizeCharacterTranslation después de un intervalo
+                    handler.postDelayed(() -> finalizeCharacterTranslation(), DETECTION_INTERVAL_MS);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
     private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap) {
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4 * 1 * 224 * 224 * 3); // Ajusta el tamaño según el modelo
         byteBuffer.order(ByteOrder.nativeOrder());
@@ -286,6 +290,7 @@ public class SeniaATexto extends AppCompatActivity {
 
     private void appendLetter(String letter) {
         Log.d("SeniaATexto", "Appending letter: " + letter);
+        // Agrega el carácter al texto actual
         currentText.append(letter);
         updateTranslationText();
     }
@@ -295,12 +300,20 @@ public class SeniaATexto extends AppCompatActivity {
         runOnUiThread(() -> {
             TextView translationText = findViewById(R.id.translation_text);
             if (translationText != null) {
-                Log.d("SeniaATexto", "Updating text: " + currentText.toString());
-                translationText.setText(currentText.toString());
+                // Combina el texto traducido con el texto actual en proceso
+                String displayText = translatedText.toString() + currentText.toString();
+                translationText.setText(displayText);
             } else {
                 Log.e("SeniaATexto", "TextView not found!");
             }
         });
+    }
+
+    private void finalizeCharacterTranslation() {
+        // Mueve el texto actual al texto traducido y limpia el texto actual
+        translatedText.append(currentText.toString());
+        currentText.setLength(0); // Limpia el texto actual
+        updateTranslationText();
     }
 
 

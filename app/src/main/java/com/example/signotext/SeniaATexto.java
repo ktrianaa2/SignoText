@@ -2,6 +2,7 @@ package com.example.signotext;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -10,11 +11,12 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -24,17 +26,46 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.tensorflow.lite.DataType;
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.List;
+
+import android.os.Handler;
+import android.os.Looper;
+
+import com.example.signotext.ml.ModelUnquant;
+import com.example.signotext.ml.SenasClassifier;
 
 public class SeniaATexto extends AppCompatActivity {
-
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+    private static final int DETECTION_INTERVAL_MS = 3000;
+    private static final float MIN_CONFIDENCE = 0.85f;
+
+    private String lastDetectedLetter = "";
+
     private TextureView textureView;
     private CameraManager cameraManager;
     private String cameraId;
     private boolean isCameraFront = false;
     private CameraDevice cameraDevice;
     private CameraCaptureSession captureSession;
+
+    private ModelUnquant model; // Usa el nuevo modelo
+    private final List<String> labels = Arrays.asList(
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+            "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+            "U", "V", "W", "X", "Y", "Z"
+    );
+
+    private Handler handler;
+    private Runnable detectionRunnable;
+    private StringBuilder currentText = new StringBuilder();
+    private long lastDetectionTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +82,12 @@ public class SeniaATexto extends AppCompatActivity {
             return insets;
         });
 
+        try {
+            model = ModelUnquant.newInstance(this); // Carga el nuevo modelo
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         textureView = findViewById(R.id.camera_preview);
         textureView.setSurfaceTextureListener(surfaceTextureListener);
 
@@ -63,6 +100,18 @@ public class SeniaATexto extends AppCompatActivity {
             return;
         }
         startCamera();
+
+        handler = new Handler(Looper.getMainLooper());
+        detectionRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (System.currentTimeMillis() - lastDetectionTime >= DETECTION_INTERVAL_MS) {
+                    lastDetectionTime = System.currentTimeMillis();
+                }
+                handler.postDelayed(this, DETECTION_INTERVAL_MS);
+            }
+        };
+        handler.post(detectionRunnable);
     }
 
     private void startCamera() {
@@ -80,11 +129,6 @@ public class SeniaATexto extends AppCompatActivity {
     }
 
     private String getCameraId() throws CameraAccessException {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
-            return null;
-        }
-
         for (String cameraId : cameraManager.getCameraIdList()) {
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
             int facing = characteristics.get(CameraCharacteristics.LENS_FACING);
@@ -122,6 +166,8 @@ public class SeniaATexto extends AppCompatActivity {
 
         @Override
         public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
+            Bitmap bitmap = textureView.getBitmap();
+            onImageAvailable(bitmap);
         }
     };
 
@@ -180,6 +226,84 @@ public class SeniaATexto extends AppCompatActivity {
         }
     }
 
+    private void onImageAvailable(Bitmap bitmap) {
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true); // Ajusta el tamaño según el modelo
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizedBitmap);
+        TensorBuffer inputBuffer = TensorBuffer.createFixedSize(new int[]{1, 224, 224, 3}, DataType.FLOAT32);
+        inputBuffer.loadBuffer(byteBuffer);
+
+        try {
+            ModelUnquant.Outputs outputs = model.process(inputBuffer);
+            TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+            float[] probabilities = outputFeature0.getFloatArray();
+            int maxIndex = getMaxIndex(probabilities);
+            float maxProbability = probabilities[maxIndex];
+            String predictedLabel = labels.get(maxIndex);
+
+            Log.d("SeniaATexto", "Detected: " + predictedLabel + " with confidence: " + maxProbability);
+
+            if (maxProbability >= MIN_CONFIDENCE) {
+                if (!predictedLabel.equals(lastDetectedLetter)) {
+                    appendLetter(predictedLabel);
+                    lastDetectedLetter = predictedLabel;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap) {
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4 * 1 * 224 * 224 * 3); // Ajusta el tamaño según el modelo
+        byteBuffer.order(ByteOrder.nativeOrder());
+
+        int[] intValues = new int[224 * 224]; // Ajusta el tamaño según el modelo
+        bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+
+        int pixelIndex = 0;
+        for (int i = 0; i < 224; ++i) { // Ajusta el tamaño según el modelo
+            for (int j = 0; j < 224; ++j) { // Ajusta el tamaño según el modelo
+                final int val = intValues[pixelIndex++];
+                byteBuffer.putFloat(((val >> 16) & 0xFF) * (1.f / 255.f));
+                byteBuffer.putFloat(((val >> 8) & 0xFF) * (1.f / 255.f));
+                byteBuffer.putFloat((val & 0xFF) * (1.f / 255.f));
+            }
+        }
+        return byteBuffer;
+    }
+
+    private int getMaxIndex(float[] probabilities) {
+        int maxIndex = 0;
+        float maxProbability = probabilities[0];
+        for (int i = 1; i < probabilities.length; i++) {
+            if (probabilities[i] > maxProbability) {
+                maxProbability = probabilities[i];
+                maxIndex = i;
+            }
+        }
+        return maxIndex;
+    }
+
+    private void appendLetter(String letter) {
+        Log.d("SeniaATexto", "Appending letter: " + letter);
+        currentText.append(letter);
+        updateTranslationText();
+    }
+
+
+    private void updateTranslationText() {
+        runOnUiThread(() -> {
+            TextView translationText = findViewById(R.id.translation_text);
+            if (translationText != null) {
+                Log.d("SeniaATexto", "Updating text: " + currentText.toString());
+                translationText.setText(currentText.toString());
+            } else {
+                Log.e("SeniaATexto", "TextView not found!");
+            }
+        });
+    }
+
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -187,8 +311,21 @@ public class SeniaATexto extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
             } else {
-                // Permiso denegado. Maneja el caso donde el usuario no ha dado permiso.
+                finish();
             }
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (cameraDevice != null) {
+            cameraDevice.close();
+            cameraDevice = null;
+        }
+        if (model != null) {
+            model.close();
+        }
+        handler.removeCallbacks(detectionRunnable);
     }
 }
